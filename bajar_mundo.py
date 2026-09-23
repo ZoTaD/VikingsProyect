@@ -36,11 +36,24 @@ def main() -> int:
     url = f"https://dathost.com/api/0.1/game-servers/{SERVER_ID}/files/" + urllib.parse.quote(WORLD_PATH)
     token = base64.b64encode(f"{email}:{password}".encode()).decode()
     req = urllib.request.Request(url, headers={"Authorization": "Basic " + token, "User-Agent": "valheim-despensa/1.0"})
-    try:
-        with urllib.request.urlopen(req, timeout=300) as r:
-            data = r.read()
-    except urllib.error.HTTPError as e:
-        print(f"DatHost respondió {e.code}. Si es 401, revisá el email o la contraseña.")
+    data = None
+    for intento in range(1, 5):
+        try:
+            with urllib.request.urlopen(req, timeout=300) as r:
+                data = r.read()
+            zipfile.ZipFile(io.BytesIO(data)).testzip()
+            break
+        except urllib.error.HTTPError as e:
+            if e.code in (401, 403, 404):
+                print(f"DatHost respondió {e.code}. Si es 401, revisá el email o la contraseña.")
+                return 1
+            print(f"Intento {intento}: DatHost respondió {e.code}")
+        except Exception as e:  # corte de conexión o zip incompleto
+            print(f"Intento {intento}: la descarga se cortó ({type(e).__name__})")
+        data = None
+        time.sleep(15 * intento)
+    if data is None:
+        print("No se pudo bajar el mundo después de 4 intentos.")
         return 1
 
     OUT.mkdir(parents=True, exist_ok=True)
