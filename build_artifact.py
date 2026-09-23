@@ -31,6 +31,9 @@ out = f"""<title>La despensa</title>
 {(ROOT / "stock.js").read_text(encoding="utf-8") if (ROOT / "stock.js").exists() else ""}
 </script>
 <script>
+{(ROOT / "status.js").read_text(encoding="utf-8") if (ROOT / "status.js").exists() else ""}
+</script>
+<script>
 {(ROOT / "app.js").read_text(encoding="utf-8")}
 </script>
 """

@@ -5,7 +5,12 @@ on:
     # cada hora en punto de 9 a 23, hora de Argentina (UTC-3)
     - cron: "0 12-23 * * *"
     - cron: "0 0-2 * * *"
-  workflow_dispatch: {}   # botón "Run workflow" o: gh workflow run actualizar.yml
+  workflow_dispatch:
+    inputs:
+      simular_falla:
+        description: "Probar qué pasa si no se puede bajar el mundo"
+        type: boolean
+        default: false
   push:
     branches: [main]
 
@@ -16,6 +21,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read
 
 concurrency:
   group: pages
@@ -24,24 +30,46 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      descarga_ok: ${{ steps.bajar.outputs.ok }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
       - name: Bajar el mundo y leer los cofres de la casa
+        id: bajar
         env:
           DATHOST_EMAIL: ${{ secrets.DATHOST_EMAIL }}
           DATHOST_PASSWORD: ${{ secrets.DATHOST_PASSWORD }}
           VALHEIM_OUT: ${{ runner.temp }}/mundo
+          SIMULAR: ${{ inputs.simular_falla }}
         run: |
-          if [ -z "$DATHOST_EMAIL" ] || [ -z "$DATHOST_PASSWORD" ]; then
-            echo "::warning::Faltan los secretos DATHOST_EMAIL y DATHOST_PASSWORD. Se publica sin lo de la casa."
-          else
-            python bajar_mundo.py
+          ok=0
+          if [ "$SIMULAR" = "true" ]; then
+            echo "::warning::Falla simulada a pedido: no se baja el mundo."
+          elif [ -z "$DATHOST_EMAIL" ] || [ -z "$DATHOST_PASSWORD" ]; then
+            echo "::warning::Faltan los secretos DATHOST_EMAIL y DATHOST_PASSWORD."
+          elif python bajar_mundo.py; then
+            ok=1
           fi
+          echo "ok=$ok" >> "$GITHUB_OUTPUT"
+          if [ "$ok" = "0" ]; then
+            echo "::error::No se pudo bajar el mundo. Se publica con los últimos datos buenos."
+            python recuperar_stock.py || true
+          fi
+
+      - name: Estado de las actualizaciones
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENTO: ${{ github.event_name }}
+          DESCARGA_OK: ${{ steps.bajar.outputs.ok }}
+        run: python estado.py
+
       - name: Armar la página
         run: python build_artifact.py --standalone --out site/index.html
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
@@ -55,3 +83,14 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # Si no se pudo bajar el mundo, la página igual se publica con los datos anteriores,
+  # pero la corrida queda en rojo para que llegue el aviso por mail.
+  avisar:
+    needs: [build, deploy]
+    if: needs.build.outputs.descarga_ok != '1'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "::error::La página se publicó con los datos anteriores porque no se pudo bajar el mundo."
+          exit 1

@@ -8,3 +8,4 @@ __pycache__/
 images.remote.js
 images.extra*.js
 resolve_*.py
+status.js

@@ -459,9 +459,50 @@
     });
   });
 
+  // ---------- barra de estado de las actualizaciones ----------
+  function renderStatus() {
+    const bar = $("#statusbar"), ST = window.STATUS || null;
+    if (!STOCK && !ST) { bar.hidden = true; return; }
+    const tz = "America/Argentina/Buenos_Aires";
+    const parts = d => Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: tz, year: "numeric", month: "2-digit",
+      day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(d).map(p => [p.type, p.value]));
+    const now = parts(new Date());
+    const today = `${now.year}-${now.month}-${now.day}`;
+    const asDate = s => new Date(s.replace(" ", "T").slice(0, 16) + ":00-03:00");
+    const when = s => {
+      if (!s) return "sin datos";
+      const [d, t] = s.split(" ");
+      const [y, m, dd] = d.split("-");
+      return (d === today ? "hoy a las " : `el ${+dd}/${+m} a las `) + t.slice(0, 5);
+    };
+    const bits = [];
+    if (STOCK) bits.push(`<span>Datos de la casa de <b>${when(STOCK.descarga)}</b></span>`);
+    if (ST) {
+      const h = +now.hour;
+      const next = h < 9 ? "9:00" : h >= 23 ? "mañana 9:00" : `${h + 1}:00`;
+      bits.push(`<span>Próxima actualización: <b>${next}</b></span>`);
+      if (!ST.descarga_ok) {
+        bits.push(`<span class="warn">La actualización de ${when(ST.generado)} no pudo bajar el mundo. Se muestran los datos anteriores.</span>`);
+      }
+      const fails = (ST.corridas || []).filter(c => !c.ok && c.evento === "schedule");
+      if (fails.length) {
+        bits.push(`<span class="warn">${fails.length === 1 ? "Falló 1 actualización automática" : `Fallaron ${fails.length} actualizaciones automáticas`} en las últimas 24 h: ${fails.map(c => c.hora.slice(11, 16)).join(", ")}</span>`);
+      } else if (ST.descarga_ok) {
+        bits.push(`<span class="ok">Sin fallas en las últimas 24 h</span>`);
+      }
+      // si en horario activo los datos tienen más de 2 horas y media, algo no está corriendo
+      if (STOCK && STOCK.descarga && h >= 10 && h <= 23) {
+        const age = (Date.now() - asDate(STOCK.descarga).getTime()) / 60000;
+        if (age > 150) bits.push(`<span class="warn">Hace ${Math.round(age / 60)} h que no se actualizan los datos</span>`);
+      }
+    }
+    bar.innerHTML = bits.join("");
+    bar.hidden = false;
+  }
+
   function refresh() {
     C = compute();
-    renderPicker(); renderCasa(); renderPrio(); renderMap(); renderDetail(); renderCombos();
+    renderStatus(); renderPicker(); renderCasa(); renderPrio(); renderMap(); renderDetail(); renderCombos();
   }
   refresh();
   let raf = 0;

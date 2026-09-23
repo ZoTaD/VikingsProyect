@@ -47,6 +47,16 @@ img { max-width: 100%; }
 button { font: inherit; color: inherit; }
 
 /* ---------- cabecera ---------- */
+.statusbar {
+  margin: 0 0 18px; display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center;
+  font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.statusbar span { display: inline; }
+.statusbar b { color: var(--bone-dim); font-weight: 700; }
+.statusbar .ok::before, .statusbar .warn::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.statusbar .ok::before { background: #7fbf6a; }
+.statusbar .warn { color: #f0a58f; }
+.statusbar .warn::before { background: var(--salud); box-shadow: 0 0 8px var(--salud); }
 .hero { max-width: 1320px; margin: 0 auto; padding: 56px 24px 20px; }
 .eyebrow {
   margin: 0; font-family: var(--display); letter-spacing: .22em; text-transform: uppercase;

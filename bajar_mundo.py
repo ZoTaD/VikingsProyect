@@ -37,7 +37,7 @@ def main() -> int:
     token = base64.b64encode(f"{email}:{password}".encode()).decode()
     req = urllib.request.Request(url, headers={"Authorization": "Basic " + token, "User-Agent": "valheim-despensa/1.0"})
     data = None
-    for intento in range(1, 5):
+    for intento in range(1, 7):
         try:
             with urllib.request.urlopen(req, timeout=300) as r:
                 data = r.read()
@@ -51,9 +51,9 @@ def main() -> int:
         except Exception as e:  # corte de conexión o zip incompleto
             print(f"Intento {intento}: la descarga se cortó ({type(e).__name__})")
         data = None
-        time.sleep(15 * intento)
+        time.sleep(20 * intento)
     if data is None:
-        print("No se pudo bajar el mundo después de 4 intentos.")
+        print("No se pudo bajar el mundo después de 6 intentos.")
         return 1
 
     OUT.mkdir(parents=True, exist_ok=True)
