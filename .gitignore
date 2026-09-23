@@ -1,0 +1,10 @@
+# se generan en cada corrida
+stock.json
+stock.js
+dist/
+site/
+__pycache__/
+# ayudas locales para bajar imágenes de la wiki (usan la copia local de la wiki)
+images.remote.js
+images.extra*.js
+resolve_*.py

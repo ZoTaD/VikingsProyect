@@ -1,0 +1,54 @@
+name: Actualizar la despensa
+
+on:
+  schedule:
+    # cada hora en punto de 9 a 23, hora de Argentina (UTC-3)
+    - cron: "0 12-23 * * *"
+    - cron: "0 0-2 * * *"
+  workflow_dispatch: {}   # botón "Run workflow" o: gh workflow run actualizar.yml
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Bajar el mundo y leer los cofres de la casa
+        env:
+          DATHOST_EMAIL: ${{ secrets.DATHOST_EMAIL }}
+          DATHOST_PASSWORD: ${{ secrets.DATHOST_PASSWORD }}
+          VALHEIM_OUT: ${{ runner.temp }}/mundo
+        run: |
+          if [ -z "$DATHOST_EMAIL" ] || [ -z "$DATHOST_PASSWORD" ]; then
+            echo "::warning::Faltan los secretos DATHOST_EMAIL y DATHOST_PASSWORD. Se publica sin lo de la casa."
+          else
+            python bajar_mundo.py
+          fi
+      - name: Armar la página
+        run: python build_artifact.py --standalone --out site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

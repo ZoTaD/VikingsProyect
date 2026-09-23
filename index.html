@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>La despensa · Valheim</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Grenze:wght@500;700&family=Grenze+Gotisch:wght@600&family=Alegreya+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+
+  <header class="hero">
+    <p class="eyebrow">Valheim 1.0 · Guía de comidas</p>
+    <h1>La despensa</h1>
+    <p class="lede">Elegí los biomas a los que van a ir y la página muestra solo las comidas que pueden cocinar con eso: qué juntar primero, de dónde sale y qué llevar en la mochila.</p>
+
+    <div class="picker" aria-labelledby="picker-title">
+      <div class="picker-head">
+        <h2 id="picker-title">¿A qué biomas van?</h2>
+        <div class="presets">
+          <button type="button" id="preset-mine">Sin Mistlands</button>
+          <button type="button" id="preset-all">Todos</button>
+          <button type="button" id="preset-none">Ninguno</button>
+        </div>
+      </div>
+      <div class="biomes" id="biomes" role="group" aria-label="Biomas"></div>
+      <p class="picker-sum" id="picker-sum"></p>
+    </div>
+
+    <div class="controls" role="group" aria-label="Qué mostrar en el mapa">
+      <div class="ctrl-group">
+        <span class="ctrl-label">Comidas, según los biomas elegidos</span>
+        <div class="seg" data-filter="type">
+          <button data-v="todo" class="on">Todas</button>
+          <button data-v="salud"><i class="dot salud"></i>Salud</button>
+          <button data-v="vigor"><i class="dot vigor"></i>Vigor</button>
+          <button data-v="mana"><i class="dot mana"></i>Maná</button>
+        </div>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Hidromieles, sin importar el bioma</span>
+        <div class="seg" data-filter="type" id="mead-seg"></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="block" id="casa" hidden>
+      <div class="block-head">
+        <h2><span class="rune">ᚺ</span> En la casa</h2>
+        <p id="casa-sub"></p>
+      </div>
+      <details class="fold" id="fold-comida">
+        <summary>
+          <span class="fold-title"><span class="rune">ᛟ</span> Comida</span>
+          <span class="fold-sum" id="sum-comida"></span>
+          <span class="fold-chev" aria-hidden="true"></span>
+        </summary>
+        <div class="fold-body">
+      <div class="casa-grid">
+        <div class="casa-col"><h3>Pueden cocinar ahora</h3><p class="casa-hint">Porciones que salen con lo que hay en los cofres. Cada fila se cuenta sola: si cocinan una, baja lo que queda para las demás.</p><ul class="pack-list casa-list" id="casa-cook"></ul></div>
+        <div class="casa-col"><h3>Les falta poco</h3><p class="casa-hint">Recetas a las que les falta un solo ingrediente para una porción.</p><ul class="pack-list casa-list" id="casa-near"></ul></div>
+        <div class="casa-col"><h3>Ya cocinado en los cofres</h3><p class="casa-hint">Toda la comida lista para llevar, esté o no en la guía.</p><ul class="pack-list casa-list" id="casa-ready"></ul></div>
+      </div>
+        </div>
+      </details>
+
+      <details class="fold" id="fold-mead">
+        <summary>
+          <span class="fold-title"><span class="rune">ᛗ</span> Hidromieles</span>
+          <span class="fold-sum" id="sum-mead"></span>
+          <span class="fold-chev" aria-hidden="true"></span>
+        </summary>
+        <div class="fold-body">
+          <p class="casa-sub-p">La base se prepara en el caldero de hidromiel, que necesita fuego debajo, y después se deja en el fermentador. Cada base rinde varias botellas.</p>
+      <div class="casa-grid">
+        <div class="casa-col"><h3>Pueden preparar ahora</h3><p class="casa-hint">Bases que salen con lo que hay en los cofres. Casi todas usan miel, así que cada fila se cuenta sola.</p><ul class="pack-list casa-list" id="mead-cook"></ul></div>
+        <div class="casa-col"><h3>Les falta poco</h3><p class="casa-hint">Bases a las que les falta un solo ingrediente.</p><ul class="pack-list casa-list" id="mead-near"></ul></div>
+        <div class="casa-col"><h3>Ya en los cofres</h3><p class="casa-hint">Hidromieles fermentadas y bases sin fermentar.</p><ul class="pack-list casa-list" id="mead-ready"></ul></div>
+      </div>
+        </div>
+      </details>
+    </section>
+
+    <section class="block" id="mapa">
+      <div class="block-head">
+        <h2><span class="rune">ᛉ</span> El mapa</h2>
+        <p>De dónde sale cada ingrediente y a qué comida o hidromiel va. Elegí qué ver con los filtros de arriba. Tocá algo para fijarlo y tocalo de nuevo para soltarlo.</p>
+      </div>
+
+      <div class="map-wrap">
+        <div class="map" id="map">
+          <svg class="wires" id="wires" aria-hidden="true">
+            <defs>
+              <marker id="ah-src" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah ah-src"/></marker>
+              <marker id="ah-salud" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah ah-salud"/></marker>
+              <marker id="ah-mead" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah ah-mead"/></marker>
+              <marker id="ah-mana" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah ah-mana"/></marker>
+              <marker id="ah-vigor" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah ah-vigor"/></marker>
+            </defs>
+            <g id="wire-g"></g>
+          </svg>
+          <div class="col col-src"><h3>De dónde sale</h3><div id="col-src"></div></div>
+          <div class="col col-ing"><h3>Ingrediente</h3><div id="col-ing"></div></div>
+          <div class="col col-food">
+            <h3 class="h-salud"><i class="dot salud"></i>Comidas de salud</h3><div id="col-salud"></div>
+            <h3 class="h-vigor"><i class="dot vigor"></i>Comidas de vigor</h3><div id="col-vigor"></div>
+            <h3 class="h-mana"><i class="dot mana"></i>Comidas de maná</h3><div id="col-mana"></div>
+            <h3 class="h-mead"><i class="dot mead"></i>Hidromieles</h3><div id="col-mead"></div>
+          </div>
+        </div>
+        <aside class="detail" id="detail" aria-live="polite"></aside>
+      </div>
+
+      <div class="chains" id="chains"></div>
+    </section>
+
+    <section class="block" id="combos">
+      <div class="block-head">
+        <h2><span class="rune">ᛟ</span> Qué comer y qué llevar</h2>
+        <p>Se comen tres a la vez y cada una dura 25 minutos. Elegí una combinación, incluidas las de mago, y la mochila calcula los ingredientes.</p>
+      </div>
+      <div class="combos" id="combo-list"></div>
+
+      <div class="pack" id="pack">
+        <div class="pack-head">
+          <h3 id="pack-title">Mochila</h3>
+          <label class="servings" for="porciones">Porciones de cada comida
+            <span class="stepper">
+              <button type="button" id="menos" aria-label="Una porción menos">−</button>
+              <input id="porciones" type="number" min="1" max="99" value="6" inputmode="numeric">
+              <button type="button" id="mas" aria-label="Una porción más">+</button>
+            </span>
+          </label>
+        </div>
+        <p class="pack-note" id="pack-note"></p>
+        <div class="pack-grid">
+          <div><h4>Comidas</h4><ul class="pack-list" id="pack-foods"></ul></div>
+          <div><h4>Ingredientes para cocinarlas</h4><ul class="pack-list" id="pack-ings"></ul></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="prioridades">
+      <div class="block-head">
+        <h2><span class="rune">ᚠ</span> Prioridades</h2>
+        <p>Se recalcula con los biomas elegidos: pesa más lo que entra en más comidas y en las mejores.</p>
+      </div>
+      <div class="prio" id="prio"></div>
+    </section>
+  </main>
+
+  <footer>
+    Datos e imágenes de la wiki de Valheim en Fandom, tomados en septiembre de 2026, con el juego en la versión 1.0.
+    Los nombres de Ashlands son traducción propia: el nombre en inglés aparece debajo para encontrarlos en el juego.
+  </footer>
+
+  <script src="images.js"></script>
+  <script src="data.js"></script>
+  <script src="stock.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
