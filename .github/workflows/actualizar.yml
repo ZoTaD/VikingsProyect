@@ -1,4 +1,5 @@
 name: Actualizar la despensa
+run-name: ${{ (github.event_name == 'schedule' || inputs.origen == 'automatico') && 'Actualización automática' || format('Actualización ({0})', github.event_name) }}
 
 on:
   schedule:
@@ -12,6 +13,10 @@ on:
         description: "Probar qué pasa si no se puede bajar el mundo"
         type: boolean
         default: false
+      origen:
+        description: "automatico si lo dispara el Worker de Cloudflare"
+        type: string
+        default: manual
   push:
     branches: [main]
 
@@ -64,7 +69,7 @@ jobs:
       - name: Estado de las actualizaciones
         env:
           GH_TOKEN: ${{ github.token }}
-          EVENTO: ${{ github.event_name }}
+          EVENTO: ${{ (github.event_name == 'schedule' || inputs.origen == 'automatico') && 'automatica' || github.event_name }}
           DESCARGA_OK: ${{ steps.bajar.outputs.ok }}
         run: python estado.py
 

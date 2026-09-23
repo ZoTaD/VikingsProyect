@@ -1,0 +1,14 @@
+{
+  // Disparador de la despensa: cada hora le pide a GitHub que corra el workflow
+  // "Actualizar la despensa", porque las corridas programadas de GitHub no son confiables.
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "vikings-despensa-disparador",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false,
+  "triggers": {
+    // UTC: minuto 17 de 9 a 23 hora de Argentina (UTC-3)
+    "crons": ["17 12-23 * * *", "17 0-2 * * *"]
+  },
+  "observability": { "enabled": true }
+}

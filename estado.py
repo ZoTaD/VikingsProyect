@@ -34,8 +34,9 @@ def runs() -> list:
         t = datetime.fromisoformat(r["created_at"].replace("Z", "+00:00"))
         if t < since:
             continue
+        auto = r["event"] == "schedule" or "automática" in (r.get("display_title") or "")
         out.append({"hora": t.astimezone(AR).strftime("%Y-%m-%d %H:%M"), "evento": r["event"],
-                    "ok": r["conclusion"] == "success"})
+                    "auto": auto, "ok": r["conclusion"] == "success"})
     return out
 
 

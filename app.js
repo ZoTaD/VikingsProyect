@@ -486,7 +486,7 @@
       if (!ST.descarga_ok) {
         bits.push(`<span class="warn">La actualización de ${when(ST.generado)} no pudo bajar el mundo. Se muestran los datos anteriores.</span>`);
       }
-      const fails = (ST.corridas || []).filter(c => !c.ok && c.evento === "schedule");
+      const fails = (ST.corridas || []).filter(c => !c.ok && (c.auto || c.evento === "schedule"));
       if (fails.length) {
         bits.push(`<span class="warn">${fails.length === 1 ? "Falló 1 actualización automática" : `Fallaron ${fails.length} actualizaciones automáticas`} en las últimas 24 h: ${fails.map(c => c.hora.slice(11, 16)).join(", ")}</span>`);
       } else if (ST.descarga_ok) {
