@@ -2,9 +2,10 @@ name: Actualizar la despensa
 
 on:
   schedule:
-    # cada hora en punto de 9 a 23, hora de Argentina (UTC-3)
-    - cron: "0 12-23 * * *"
-    - cron: "0 0-2 * * *"
+    # cada hora de 9 a 23, hora de Argentina (UTC-3), en el minuto 17: a la hora en punto
+    # GitHub está saturado y atrasa o saltea las corridas programadas.
+    - cron: "17 12-23 * * *"
+    - cron: "17 0-2 * * *"
   workflow_dispatch:
     inputs:
       simular_falla:

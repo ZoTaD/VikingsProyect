@@ -479,8 +479,10 @@
     if (STOCK) bits.push(`<span>Datos de la casa de <b>${when(STOCK.descarga)}</b></span>`);
     if (ST) {
       const h = +now.hour;
-      const next = h < 9 ? "9:00" : h >= 23 ? "mañana 9:00" : `${h + 1}:00`;
-      bits.push(`<span>Próxima actualización: <b>${next}</b></span>`);
+      // las corridas automáticas son a las :17 de cada hora de 9 a 23, y GitHub puede atrasarlas unos minutos
+      const m = +now.minute, RUN = 17, hh = String(RUN).padStart(2, "0");
+      const next = h < 9 ? `9:${hh}` : h > 23 || (h === 23 && m >= RUN) ? `mañana 9:${hh}` : m < RUN ? `${h}:${hh}` : `${h + 1}:${hh}`;
+      bits.push(`<span>Próxima actualización: <b>${next}</b> aprox.</span>`);
       if (!ST.descarga_ok) {
         bits.push(`<span class="warn">La actualización de ${when(ST.generado)} no pudo bajar el mundo. Se muestran los datos anteriores.</span>`);
       }
