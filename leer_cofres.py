@@ -120,7 +120,7 @@ def owner(b: bytes, i: int):
 def main() -> int:
     debug = "--debug" in sys.argv
     names = item_ids()
-    totals, kinds, unknown, elsewhere = Counter(), Counter(), Counter(), Counter()
+    totals, kinds, unknown, elsewhere, by_chunk = Counter(), Counter(), Counter(), Counter(), Counter()
     skipped = unreadable = 0
     for f in sorted(WORLD.glob("*.chunk")):
         in_casa = f.name.split("__")[0] in CASA_CHUNKS
@@ -136,6 +136,10 @@ def main() -> int:
             kind = owner(b, i)
             if kind is None:
                 skipped += 1
+            elif kind in CHESTS:
+                by_chunk[f.name.split("__")[0]] += 1
+            if kind is None:
+                pass
             elif kind not in CHESTS or not in_casa:
                 elsewhere[kind] += 1
             else:
@@ -158,6 +162,7 @@ def main() -> int:
         "descarga": last.read_text(encoding="utf-8").strip() if last.exists() else None,
         "cofres_casa": sum(kinds.values()), "tipos": dict(kinds), "sin_leer": unreadable,
         "fuera_de_casa": dict(elsewhere), "botin_ignorado": skipped,
+        "cofres_por_zona": dict(by_chunk.most_common()),
         "items": dict(totals.most_common()),
         "sin_nombre": {str(k): v for k, v in unknown.most_common()},
     }, indent=1, ensure_ascii=False), encoding="utf-8")
