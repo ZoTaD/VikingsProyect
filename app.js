@@ -17,7 +17,29 @@
   const have = id => (PIDS[id] || []).reduce((a, p) => a + (ITEMS[p] || 0), 0);
   const convertible = id => (CONVERTS[id] ? ITEMS[CONVERTS[id].pid] || 0 : 0);
   const usable = id => have(id) + convertible(id);
-  const portions = f => Math.min(...f.ing.map(([i, q]) => Math.floor(usable(i) / q)));
+  const ingPortions = f => Math.min(...f.ing.map(([i, q]) => Math.floor(usable(i) / q)));
+  // Estaciones de la casa (las detecta leer_cofres.py). Sin datos, se asume que están todas.
+  const EST = (STOCK && STOCK.estaciones) || null;
+  const NEEDS = window.NEEDS || {}, MEAD_NEEDS = window.MEAD_NEEDS || {}, STATION_NAMES = window.STATION_NAMES || {};
+  const ALL_EXTS = ["especiero", "mesa de carnicero", "ollas y sartenes", "mortero", "rodillos y tablas"];
+  const stationMiss = needs => {
+    if (!EST || !needs) return [];
+    const out = [];
+    Object.entries(needs).forEach(([st, lvl]) => {
+      if (st === "caldero") {
+        const have = EST.caldero_nivel || 0;
+        if (have >= lvl) return;
+        if (!EST.caldero) { out.push(`caldero nivel ${lvl}`); return; }
+        const faltan = ALL_EXTS.filter(x => !(EST.caldero_mejoras || []).includes(x));
+        out.push(`caldero nivel ${lvl} (está en ${have}; sumar ${lvl - have === 1 ? "una mejora" : lvl - have + " mejoras"}: ${faltan.join(", ")})`);
+      } else if (!EST[st]) {
+        out.push(STATION_NAMES[st] || st);
+      }
+    });
+    return out;
+  };
+  const needsOf = f => (f.isMead || MEADS.some(m => m.id === f.id) ? MEAD_NEEDS : NEEDS[f.id]);
+  const portions = f => (stationMiss(needsOf(f)).length ? 0 : ingPortions(f));
   const MEAD_INGS = window.MEAD_INGS || {}, MEADS = window.MEADS || [];
   Object.entries(MEAD_INGS).forEach(([k, v]) => { PIDS[k] = v.pids; });
   const COOKED = (window.COOKED || []).map(c => {
@@ -67,8 +89,10 @@
   function compute() {
     const avail = FOODS.filter(foodOk);
     const mead = isMeadMode(), cat = state.type.slice(5);
-    const shown = mead ? MEAD_DISHES.filter(m => cat === "todas" || m.cat === cat)
-      : avail.filter(f => foodType() === "todo" || f.type === foodType());
+    let shown = mead ? MEAD_DISHES.filter(m => cat === "todas" || m.cat === cat)
+      : (state.casa && STOCK ? FOODS : avail).filter(f => foodType() === "todo" || f.type === foodType());
+    const casa = !!(state.casa && STOCK);
+    if (casa) shown = shown.filter(f => portions(f) > 0);
     // prioridad: pesa más lo que entra en más comidas y en las mejores
     const score = {};
     avail.forEach(f => f.ing.forEach(([i]) => { score[i] = (score[i] || 0) + Math.pow(main(f) / 100, 3); }));
@@ -76,7 +100,7 @@
     const rank = Object.fromEntries(ranked.map((id, k) => [id, k + 1]));
     const shownFoods = new Set(shown.map(f => f.id));
     let shownIngs;
-    if (mead) {
+    if (mead || casa) {
       const used = new Map();
       shown.forEach(m => m.ing.forEach(([i]) => used.set(i, (used.get(i) || 0) + 1)));
       const order = [...used.keys()].sort((a, b) => (rank[a] || 999) - (rank[b] || 999) || used.get(b) - used.get(a));
@@ -84,7 +108,7 @@
     } else {
       shownIngs = new Set(ranked.filter(i => foodsOfIng[i].some(([f]) => shownFoods.has(f))));
     }
-    return { avail, shown, ranked, rank, score, shownFoods, shownIngs, mead };
+    return { avail, shown, ranked, rank, score, shownFoods, shownIngs, mead, casa, free: mead || casa };
   }
   let C = compute();
 
@@ -138,7 +162,7 @@
         const names = uses.map(([f]) => foodById[f].name);
         const why = `Va en ${uses.length === 1 ? "una comida" : uses.length + " comidas"}: ${list(names)}.`;
         const where = i.biomes.filter(b => state.biomes.has(b)).map(b => biomeById[b].name).join(" · ");
-        html += `<button class="pcard ${C.rank[id] <= 4 ? "top" : ""} ${C.mead || C.shownIngs.has(id) ? "" : "off"}" data-id="${id}" style="animation-delay:${(n++) * 30}ms">
+        html += `<button class="pcard ${C.rank[id] <= 4 ? "top" : ""} ${C.free || C.shownIngs.has(id) ? "" : "off"}" data-id="${id}" style="animation-delay:${(n++) * 30}ms">
           <span class="rank">${C.rank[id]}</span>
           <span class="pic">${img(id, "", i.name)}</span>
           <span><span class="nm">${esc(i.name)}${STOCK ? `<span class="stock" title="En los cofres de la casa">${usable(id)} en casa</span>` : ""}</span><span class="en">${esc(i.en)} · ${esc(where)}</span>
@@ -174,11 +198,12 @@
     if (f.isMead) return `<button class="node food mead" data-key="food:${id}">
       <span class="pic">${img(id, "", f.name)}</span>
       <span><span class="nm">${esc(f.name)}</span><span class="sub">${esc(f.en)} · ${f.out} por base</span>
-        <span class="effect">${esc(f.effect)} · ${durTxt(f.dur)}</span>
+        <span class="effect">${esc(f.effect)} · ${durTxt(f.dur)}</span>${C.casa ? `<span class="can">Salen ${portions(f)} ${portions(f) === 1 ? "base" : "bases"} con lo de la casa</span>` : ""}
         <span class="recipe">${recipe}</span></span></button>`;
+    const canTxt = C.casa ? `<span class="can">Salen ${portions(f)} con lo de la casa</span>` : "";
     return `<button class="node food ${f.type}" data-key="food:${id}">
       <span class="pic">${img(id, "", f.name)}</span>
-      <span><span class="nm">${esc(f.name)}</span><span class="sub">${esc(f.en)} · ${esc(f.station)}</span>
+      <span><span class="nm">${esc(f.name)}</span>${canTxt}<span class="sub">${esc(f.en)} · ${esc(f.station)}</span>
         <span class="stats"><span class="stat h"><b>${f.h}</b> salud</span><span class="stat s"><b>${f.s}</b> vigor</span>${f.e ? `<span class="stat e"><b>${f.e}</b> maná</span>` : ""}</span>
         <span class="recipe">${recipe}</span></span></button>`;
   }
@@ -187,7 +212,7 @@
   const srcVisible = (src, ings) => (ingsOfSrc[src] || []).some(i => ings.has(i));
 
   function renderMap() {
-    const ingOrder = C.mead ? [...C.shownIngs] : C.ranked.filter(i => C.shownIngs.has(i));
+    const ingOrder = C.free ? [...C.shownIngs] : C.ranked.filter(i => C.shownIngs.has(i));
     const pos = Object.fromEntries(ingOrder.map((i, k) => [i, k]));
     const srcs = Object.keys(SOURCES).filter(s => srcVisible(s, C.shownIngs));
     srcs.sort((a, b) => {
@@ -386,6 +411,15 @@
   $("#porciones").addEventListener("change", e => setServings(e.target.value));
 
   // ---------- filtro de tipo ----------
+  // opción del mapa: solo lo que sale con lo de la casa
+  const casaBtn = $("#casa-toggle");
+  if (!STOCK) casaBtn.closest(".ctrl-group").hidden = true;
+  casaBtn.addEventListener("click", () => {
+    state.casa = !state.casa;
+    casaBtn.setAttribute("aria-pressed", String(state.casa));
+    state.pinned = null;
+    refresh();
+  });
   $("#mead-seg").innerHTML = (window.MEAD_CATS || []).map(c => `<button data-v="mead:${c.id}">${c.id === "todas" ? '<i class="dot mead"></i>' : ""}${esc(c.name)}</button>`).join("");
   document.querySelectorAll(".seg").forEach(seg => seg.addEventListener("click", e => {
     const b = e.target.closest("button"); if (!b) return;
@@ -395,6 +429,17 @@
     refresh();
   }));
 
+  function renderStations() {
+    const el = $("#casa-est");
+    if (!EST) { el.hidden = true; return; }
+    const parts = [];
+    parts.push(EST.caldero ? `Caldero nivel <b>${EST.caldero_nivel}</b>${EST.caldero_nivel < 6 ? ` (para el 6 falta: ${ALL_EXTS.filter(x => !(EST.caldero_mejoras || []).includes(x)).join(", ")})` : ""}` : "<b>Sin caldero</b>");
+    [["horno", "Horno de piedra"], ["mesa_prep", "Mesa de preparación"], ["ketill", "Caldero de hidromiel"], ["fermentador", "Fermentador"], ["cocina_hierro", "Estación de cocina de hierro"]]
+      .forEach(([k, name]) => parts.push(EST[k] ? `${name}${EST[k] > 1 ? " ×" + EST[k] : ""}` : `<span class="miss">Sin ${name.toLowerCase()}</span>`));
+    el.innerHTML = "Estaciones en la casa: " + parts.join(" · ");
+    el.hidden = false;
+  }
+
   function renderCasa() {
     const sec = $("#casa");
     sec.hidden = !STOCK;
@@ -403,6 +448,7 @@
     const m = when.match(/(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/);
     const fecha = m ? `${+m[3]}/${+m[2]} a las ${m[4]}:${m[5]}` : when;
     $("#casa-sub").textContent = `Lo que hay en los ${STOCK.cofres_casa} cofres de la casa según la copia del servidor del ${fecha}. El servidor guarda cada tanto, así que lo último que movieron puede no estar.`;
+    renderStations();
     const typeOk = f => foodType() === "todo" || f.type === foodType();
     const stat = f => `${main(f)} ${f.type === "salud" ? "salud" : f.type === "vigor" ? "vigor" : "maná"}`;
     const none = t => `<li class="none">${t}</li>`;
@@ -415,13 +461,14 @@
       return `<li>${img(f.id, f.type, f.name)}<span><b>${esc(f.name)}</b><small>${stat(f)} · ${esc(f.station)}${f.ing.length > 1 ? ` · limita ${esc(ingById[lim[0]].name.toLowerCase())}` : ""}${conv.length ? ` · usa ${esc(conv.join(", "))}` : ""}</small></span><span class="qty">×${n}</span></li>`;
     }).join("") : none("Con lo que hay no sale ninguna receta completa.");
 
-    const near = pool.map(f => ({ f, miss: f.ing.filter(([i, q]) => usable(i) < q) }))
-      .filter(x => x.miss.length === 1).sort((a, b) => main(b.f) - main(a.f));
-    $("#casa-near").innerHTML = near.length ? near.map(({ f, miss }) => {
+    const near = pool.map(f => ({ f, miss: f.ing.filter(([i, q]) => usable(i) < q), st: stationMiss(needsOf(f)) }))
+      .filter(x => x.miss.length + x.st.length === 1).sort((a, b) => main(b.f) - main(a.f));
+    $("#casa-near").innerHTML = near.length ? near.map(({ f, miss, st }) => {
+      if (st.length) return `<li>${img(f.id, f.type, f.name)}<span><b>${esc(f.name)}</b><small>Hay ingredientes para ${ingPortions(f)}, pero falta <b>${esc(st[0])}</b></small></span></li>`;
       const [i, q] = miss[0], falt = q - usable(i);
       const where = whereOf(i);
       return `<li>${img(f.id, f.type, f.name)}<span><b>${esc(f.name)}</b><small>Falta <b>${falt} ${esc(ingById[i].name.toLowerCase())}</b> · ${esc(where)}</small></span>${img(i, "", ingById[i].name)}</li>`;
-    }).join("") : none("No hay recetas a un solo ingrediente de distancia.");
+    }).join("") : none("No hay recetas a un solo ingrediente o estación de distancia.");
 
     const ready = COOKED.filter(typeOk).map(f => ({ f, n: countPids(f.pids) })).filter(x => x.n > 0).sort((a, b) => main(b.f) - main(a.f));
     $("#casa-ready").innerHTML = ready.length ? ready.map(({ f, n }) =>
@@ -429,15 +476,17 @@
       : none("No hay comida cocinada en los cofres.");
 
     // hidromieles
-    const bases = m => Math.min(...m.ing.map(([i, q]) => Math.floor(usable(i) / q)));
+    const bases = m => portions(m);
     const mcook = MEADS.map(m => ({ m, n: bases(m) })).filter(x => x.n > 0).sort((a, b) => b.n - a.n);
     $("#mead-cook").innerHTML = mcook.length ? mcook.map(({ m, n }) => {
       const lim = m.ing.reduce((a, [i, q]) => (Math.floor(usable(i) / q) < Math.floor(usable(a[0]) / a[1]) ? [i, q] : a), m.ing[0]);
       return `<li>${img(m.id, "", m.name)}<span><b>${esc(m.name)}</b><span class="mead-eff">${esc(m.effect)} · ${durTxt(m.dur)}</span><small>${n} ${n === 1 ? "base" : "bases"}, ${n * m.out} botellas · limita ${esc(nameOf(lim[0]).toLowerCase())}</small></span><span class="qty">×${n}</span></li>`;
     }).join("") : none("Con lo que hay no sale ninguna base completa.");
 
-    const mnear = MEADS.map(m => ({ m, miss: m.ing.filter(([i, q]) => usable(i) < q) })).filter(x => x.miss.length === 1);
-    $("#mead-near").innerHTML = mnear.length ? mnear.map(({ m, miss }) => {
+    const mnear = MEADS.map(m => ({ m, miss: m.ing.filter(([i, q]) => usable(i) < q), st: stationMiss(MEAD_NEEDS) }))
+      .filter(x => x.miss.length + x.st.length === 1);
+    $("#mead-near").innerHTML = mnear.length ? mnear.map(({ m, miss, st }) => {
+      if (st.length) return `<li>${img(m.id, "", m.name)}<span><b>${esc(m.name)}</b><small>Hay ingredientes, pero falta <b>${esc(st[0])}</b></small></span></li>`;
       const [i, q] = miss[0];
       return `<li>${img(m.id, "", m.name)}<span><b>${esc(m.name)}</b><span class="mead-eff">${esc(m.effect)}</span><small>Falta <b>${q - usable(i)} ${esc(nameOf(i).toLowerCase())}</b> · ${esc(whereOf(i))}</small></span>${img(i, "", nameOf(i))}</li>`;
     }).join("") : none("No hay bases a un solo ingrediente de distancia.");

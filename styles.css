@@ -321,6 +321,19 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--ember); out
 @media (max-width: 900px) { .pack-grid { grid-template-columns: 1fr; } }
 
 /* ---------- en la casa ---------- */
+.casa-est { margin: -8px 0 16px; color: var(--bone-dim); font-size: 14.5px; }
+.casa-est b { color: var(--bone); }
+.casa-est .miss { color: #f0a58f; }
+.node .can { display: block; margin-top: 3px; font-size: 12.5px; font-weight: 700; color: #9fcf8a; }
+.toggle {
+  display: inline-flex; align-items: center; gap: 10px; border: 0; cursor: pointer; padding: 8px 16px 8px 8px;
+  border-radius: 999px; background: rgba(0,0,0,.35); box-shadow: inset 0 0 0 1px var(--line); color: var(--bone-dim); font-weight: 500;
+}
+.toggle .knob { width: 34px; height: 20px; border-radius: 99px; background: var(--panel-2); position: relative; transition: background .2s; }
+.toggle .knob::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--bone-dim); transition: transform .2s, background .2s; }
+.toggle[aria-pressed="true"] { color: var(--bone); }
+.toggle[aria-pressed="true"] .knob { background: rgba(127,191,106,.35); }
+.toggle[aria-pressed="true"] .knob::after { transform: translateX(14px); background: #9fcf8a; }
 .fold { border-radius: 14px; background: rgba(0,0,0,.22); box-shadow: inset 0 0 0 1px var(--line); }
 .fold + .fold { margin-top: 12px; }
 .fold > summary {

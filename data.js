@@ -365,3 +365,27 @@ window.MEAD_CATS = [
   { id: "frio",     name: "Frío" },
   { id: "otras",    name: "Otras" },
 ];
+
+// Estación que pide cada receta (wiki, página del Caldero). El caldero sube un nivel por cada
+// mejora pegada: especiero, mesa de carnicero, ollas y sartenes, mortero, rodillos y tablas.
+window.STATION_NAMES = {
+  caldero: "caldero", horno: "horno de piedra", mesa_prep: "mesa de preparación",
+  cocina_hierro: "estación de cocina de hierro", ketill: "caldero de hidromiel", fermentador: "fermentador",
+};
+window.NEEDS = {
+  // caldero con nivel mínimo
+  "sopa-cebolla": { caldero: 2 }, "guiso-serpiente": { caldero: 2 },
+  "brocheta-lobo": { caldero: 3 }, "eyescream": { caldero: 3 },
+  "wraps": { caldero: 4 }, "morcilla": { caldero: 4 },
+  "svinstew": { caldero: 5 }, "omelette": { caldero: 5 }, "ensalada": { caldero: 5 }, "aspic": { caldero: 5 },
+  "caldo-bayas": { caldero: 5 }, "mermelada": { caldero: 5 }, "porridge": { caldero: 5 },
+  "verdes": { caldero: 6 }, "carne-machacada": { caldero: 6 }, "popurri": { caldero: 6 }, "shroomshake": { caldero: 6 },
+  // se preparan en la mesa de preparación y se hornean
+  "pastel-picante": { mesa_prep: 1, horno: 1 }, "misthare": { mesa_prep: 1, horno: 1 }, "pollo": { mesa_prep: 1, horno: 1 },
+  "bandeja": { mesa_prep: 1, horno: 1 }, "pastel-lox": { mesa_prep: 1, horno: 1 }, "pastel-corteza": { mesa_prep: 1, horno: 1 },
+  "fishnbread": { mesa_prep: 1, horno: 1 }, "pan": { horno: 1 }, "hongo-relleno": { mesa_prep: 1, horno: 1 },
+  // carnes de Ashlands
+  "bonemaw-asado": { cocina_hierro: 1 }, "cola-asada": { cocina_hierro: 1 }, "volture-asado": { cocina_hierro: 1 },
+};
+// todas las hidromieles: base en el caldero de hidromiel y después el fermentador
+window.MEAD_NEEDS = { ketill: 1, fermentador: 1 };

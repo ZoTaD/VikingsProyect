@@ -45,6 +45,10 @@
         <span class="ctrl-label">Hidromieles, sin importar el bioma</span>
         <div class="seg" data-filter="type" id="mead-seg"></div>
       </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Con lo que hay en los cofres</span>
+        <button type="button" class="toggle" id="casa-toggle" aria-pressed="false"><span class="knob" aria-hidden="true"></span>Solo lo que sale con lo de la casa</button>
+      </div>
     </div>
   </header>
 
@@ -54,6 +58,7 @@
         <h2><span class="rune">ᚺ</span> En la casa</h2>
         <p id="casa-sub"></p>
       </div>
+      <p class="casa-est" id="casa-est" hidden></p>
       <details class="fold" id="fold-comida">
         <summary>
           <span class="fold-title"><span class="rune">ᛟ</span> Comida</span>

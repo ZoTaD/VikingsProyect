@@ -70,6 +70,30 @@ PLAYER_CONTAINERS = {stable_hash(n): n for n in [
 ]}
 
 
+# Estaciones de cocina: se cuentan por el hash del prefab en los chunks de la casa.
+STATIONS = {
+    "caldero": "piece_cauldron", "horno": "piece_oven", "mesa_prep": "piece_preptable",
+    "cocina_hierro": "Piece_ironcookingstation", "cocina": "piece_cookingstation",
+    "ketill": "piece_MeadCauldron", "fermentador": "fermenter",
+}
+# Cada mejora distinta cerca del caldero suma un nivel (máximo 6). Tienen que estar pegadas al caldero.
+CAULDRON_EXTS = {
+    "especiero": "cauldron_ext1_spice", "mesa de carnicero": "cauldron_ext3_butchertable",
+    "ollas y sartenes": "cauldron_ext4_pots", "mortero": "cauldron_ext5_mortarandpestle",
+    "rodillos y tablas": "cauldron_ext6_rollingpins",
+}
+
+
+def stations(files) -> dict:
+    data = b"".join(f.read_bytes() for f in files)
+    count = lambda prefab: data.count(struct.pack("<I", stable_hash(prefab)))
+    out = {k: count(v) for k, v in STATIONS.items()}
+    exts = [name for name, prefab in CAULDRON_EXTS.items() if count(prefab)]
+    out["caldero_mejoras"] = exts
+    out["caldero_nivel"] = (1 + len(exts)) if out["caldero"] else 0
+    return out
+
+
 def _str(bl: bytes, p: int) -> int:
     return p + 1 + bl[p]
 
@@ -163,6 +187,7 @@ def main() -> int:
         "cofres_casa": sum(kinds.values()), "tipos": dict(kinds), "sin_leer": unreadable,
         "fuera_de_casa": dict(elsewhere), "botin_ignorado": skipped,
         "cofres_por_zona": dict(by_chunk.most_common()),
+        "estaciones": stations([f for f in sorted(WORLD.glob("*.chunk")) if f.name.split("__")[0] in CASA_CHUNKS]),
         "items": dict(totals.most_common()),
         "sin_nombre": {str(k): v for k, v in unknown.most_common()},
     }, indent=1, ensure_ascii=False), encoding="utf-8")
